@@ -1,10 +1,9 @@
 package com.jobportel.boot.model;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,20 +11,21 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Candidate {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     private String name;
-
-    @Column(unique = true)
     private String email;
-
-    @Column(unique = true)
     private String phone;
-
     private String college;
     private String branch;
     private String gender;
+    private int backlogs; // Match the frontend field
+
+    @Lob // For storing the file in the database
+    private byte[] resumeData; 
+    private String resumeName;
+
+    // Standard Getters and Setters...
 }
