@@ -22,20 +22,38 @@ public class CandidateController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(
-        @ModelAttribute Candidate candidate, 
+        @RequestBody Candidate candidate, 
         @RequestParam(value = "resume", required = false) MultipartFile resumeFile
     ) {
-        // 1. Check if Email exists
-        if (candidateRepository.findByEmail(candidate.getEmail().trim()).isPresent()) {
+        // 1. Validate if candidate object exists
+        if (candidate == null) {
+            return ResponseEntity.badRequest().body("No candidate data received.");
+        }
+
+        // 2. Validate Email safely (Check null first, THEN trim)
+        String rawEmail = candidate.getEmail();
+        if (rawEmail == null || rawEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Email is required");
+        }
+        String email = rawEmail.trim();
+
+        // 3. Database check for existing Email
+        if (candidateRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists!");
         }
 
-        // 2. Check if Phone exists
-        if (candidateRepository.findByPhone(candidate.getPhone().trim()).isPresent()) {
+        // 4. Validate Phone safely
+        String rawPhone = candidate.getPhone();
+        if (rawPhone == null || rawPhone.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Mobile Number is required");
+        }
+        String phone = rawPhone.trim();
+
+        if (candidateRepository.findByPhone(phone).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Mobile Number already exists!");
         }
 
-        // 3. Handle Resume (If uploaded)
+        // 5. Handle Resume Upload
         if (resumeFile != null && !resumeFile.isEmpty()) {
             try {
                 candidate.setResumeData(resumeFile.getBytes());
@@ -45,9 +63,14 @@ public class CandidateController {
             }
         }
 
+        // 6. Set the cleaned/trimmed data back to the object
+        candidate.setEmail(email);
+        candidate.setPhone(phone);
+
         Candidate savedCandidate = candidateRepository.save(candidate);
         return ResponseEntity.ok(savedCandidate);
     }
+    
     @GetMapping("/{id}")
     public ResponseEntity<Candidate> getCandidate(@PathVariable("id") Long id) {
         Candidate candidate = candidateRepository.findById(id)
