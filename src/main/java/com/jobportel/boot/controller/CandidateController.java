@@ -1,9 +1,10 @@
 package com.jobportel.boot.controller;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.jobportel.boot.model.Candidate;
 import com.jobportel.boot.repository.CandidateRepository;
@@ -16,31 +17,33 @@ public class CandidateController {
     @Autowired
     private CandidateRepository candidateRepository;
 
-    // Register candidate
     @PostMapping("/register")
-    public Candidate register(@RequestBody Candidate candidate) {
+    public ResponseEntity<?> register(@RequestBody Candidate candidate) {
 
-        Optional<Candidate> byEmail =
-                candidateRepository.findByEmail(candidate.getEmail());
-
-        if (byEmail.isPresent()) {
-            throw new RuntimeException("Email already registered");
+        // 1. Check if Email exists
+        if (candidateRepository.findByEmail(candidate.getEmail().trim()).isPresent()) {
+            // Returning a 409 Conflict with a specific message
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body("Already you wrote the exam with this Email!");
         }
 
-        Optional<Candidate> byPhone =
-                candidateRepository.findByPhone(candidate.getPhone());
-
-        if (byPhone.isPresent()) {
-            throw new RuntimeException("Phone already registered");
+        // 2. Check if Phone number exists
+        if (candidateRepository.findByPhone(candidate.getPhone().trim()).isPresent()) {
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body("Already you wrote the exam with this Mobile Number!");
         }
 
-        return candidateRepository.save(candidate);
+        // 3. Save and return the candidate
+        Candidate savedCandidate = candidateRepository.save(candidate);
+        return ResponseEntity.ok(savedCandidate);
     }
 
-    // Get candidate details
     @GetMapping("/{id}")
-    public Candidate getCandidate(@PathVariable("id") Long id) {
-        return candidateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+    public ResponseEntity<Candidate> getCandidate(@PathVariable("id") Long id) {
+        Candidate candidate = candidateRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Candidate not found"));
+        return ResponseEntity.ok(candidate);
     }
 }

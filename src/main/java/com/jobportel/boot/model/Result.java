@@ -25,5 +25,7 @@ public class Result {
     private int reasoningCorrect;
     private int communicationCorrect;
     private int totalCorrect;
+ // Add this field
+    private double percentage;
 }
 

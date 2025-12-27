@@ -1,4 +1,9 @@
 package com.jobportel.boot.controller;
+
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -6,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jobportel.boot.dto.AnswerDTO;
@@ -30,27 +36,20 @@ public class ResultController {
 
     @Autowired
     private AnswerRepository answerRepo;
-
+    
     @PostMapping("/submit")
     public Result submitExam(@RequestBody SubmitRequest request) {
 
-        Result existing = resultRepo
-                .findByCandidateEmail(request.getCandidateEmail())
-                .orElse(null);
-
-        if (existing != null) {
-            return existing;
-        }
+        Result existing = resultRepo.findByCandidateEmail(request.getCandidateEmail()).orElse(null);
+        if (existing != null) return existing;
 
         int apt = 0, rea = 0, com = 0;
-        int totalQuestions = request.getAnswers().size(); // Get total for percentage
+        int totalExamQuestions = 60; 
 
         for (AnswerDTO dto : request.getAnswers()) {
-
             Question q = questionRepo.findById(dto.getQuestionId())
                     .orElseThrow(() -> new RuntimeException("Question not found"));
 
-            // Use trim() to remove hidden spaces and ignore case for comparison
             boolean correct = q.getCorrectOption().trim().equalsIgnoreCase(dto.getSelectedOption().trim());
 
             Answer ans = new Answer();
@@ -59,35 +58,20 @@ public class ResultController {
             ans.setSubmittedAnswer(dto.getSelectedOption());
             ans.setCorrectAnswer(q.getCorrectOption());
             ans.setCorrect(correct);
-
             answerRepo.save(ans);
 
             if (correct) {
-                // Normalize the section name from DB to match the switch cases
-                String sectionName = q.getSection().trim().toUpperCase();
-                
-                switch (sectionName) {
-                    case "APTITUDE": 
-                        apt++; 
-                        break;
-                    case "REASONING": 
-                        rea++; 
-                        break;
-                    case "COMMUNICATION": 
-                        com++; 
-                        break;
-                    default:
-                        // This helps you see if there is a typo in your DB section names
-                        System.out.println("No match found for section: [" + sectionName + "]");
-                        break;
+                String section = q.getSection().trim().toUpperCase();
+                switch (section) {
+                    case "APTITUDE": apt++; break;
+                    case "REASONING": rea++; break;
+                    case "COMMUNICATION": com++; break; 
                 }
             }
         }
 
         int totalCorrect = apt + rea + com;
-        
-        // Calculate percentage: (correct / total) * 100
-        double percentage = (totalQuestions > 0) ? ((double) totalCorrect / totalQuestions) * 100 : 0.0;
+        double percentage = ((double) totalCorrect / totalExamQuestions) * 100;
 
         Result result = new Result();
         result.setCandidateEmail(request.getCandidateEmail());
@@ -95,15 +79,29 @@ public class ResultController {
         result.setReasoningCorrect(rea);
         result.setCommunicationCorrect(com);
         result.setTotalCorrect(totalCorrect);
-        //result.setPercentage(percentage); // Set the calculated percentage
+        result.setPercentage(Math.round(percentage * 100.0) / 100.0); 
 
         return resultRepo.save(result);
     }
+
+    // FIXED: Added explicit name for PathVariable
     @GetMapping("/email/{email}")
-    public Result getResultByEmail(@PathVariable("email") String email) {
+    public Result getResultByEmail(@PathVariable(name = "email") String email) {
         return resultRepo.findByCandidateEmail(email)
             .orElseThrow(() -> new RuntimeException("Result not found"));
     }
+
+    // FIXED: Added explicit names for RequestParams
+    @GetMapping("/search")
+    public List<Result> searchResults(
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name = "minPercentage", required = false) Double minPercentage) {
+        
+        String emailFilter = (email != null && !email.trim().isEmpty()) ? email : null;
+        
+        // Handle null percentage by passing 0 to the query
+        Double pctFilter = (minPercentage != null) ? minPercentage : 0.0;
+        
+        return resultRepo.findResultsWithFilters(emailFilter, pctFilter);
+    }
 }
-
-

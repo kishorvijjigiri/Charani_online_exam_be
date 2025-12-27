@@ -1,5 +1,6 @@
 package com.jobportel.boot.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,7 +11,7 @@ import lombok.Setter;
 
 @Entity
 @Getter @Setter
-@Table(name = "questions")
+@Table(name = "question")
 public class Question {
 
     @Id
@@ -18,6 +19,7 @@ public class Question {
     private Long id;
 
     private String section; // APTITUDE, ARITHMETIC, COMMUNICATION
+    @Column(name = "question", columnDefinition = "TEXT")
     private String question;
 
     private String optionA;

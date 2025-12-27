@@ -27,5 +27,5 @@ public class Candidate {
 
     private String college;
     private String branch;
-    private String idCardPath;
+    private String gender;
 }
