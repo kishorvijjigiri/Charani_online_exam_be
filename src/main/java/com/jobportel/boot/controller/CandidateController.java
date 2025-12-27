@@ -14,7 +14,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/candidate")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://charanionlineexam.vercel.app")
 public class CandidateController {
 
     @Autowired
